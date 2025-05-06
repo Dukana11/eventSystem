@@ -35,15 +35,23 @@ const navItems: NavItem[] = [
       { name: "Event category", path: "/reference/event-category", pro: false },
       { name: "Event type", path: "/reference/event-type", pro: false },
       { name: "Event status", path: "/reference/event-status", pro: false },
+      { name: "Address", path: "/reference/address", pro: false },
     ],
   },
   {
-    name: "Tables",
+    name: "User",
     icon: <TableIcon />,
     subItems: [
       { name: "Customer", path: "/user/customer-table", pro: false },
       { name: "Organizer", path: "/user/organizer-table", pro: false },
-      { name: "Event", path: "/event", pro: false },
+    ],
+  },
+  {
+    name: "Event",
+    icon: <CalenderIcon />,
+    subItems: [
+      { name: "Event list", path: "/event", pro: false },
+      { name: "Location", path: "/event/location", pro: false },
       { name: "Basic Tables", path: "/basic-tables", pro: false },
     ],
   },

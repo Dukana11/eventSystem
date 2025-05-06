@@ -24,7 +24,7 @@ interface CustomerProps{
   refreshTrigger?: number;
 }
 
-export default function CustomerTable({refreshTrigger}:CustomerProps) {
+export default function EventTable({refreshTrigger}:CustomerProps) {
   const [customer, setCustomer] = useState<Customer[]>([]);
 
   useEffect(() => {
@@ -61,43 +61,37 @@ export default function CustomerTable({refreshTrigger}:CustomerProps) {
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Овог
+                  Эвентийн нэр
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Нэр
+                  Ангилал
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Имэйл
+                  Дэлгэрэнгүй
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Гэрийн хаяг
+                  Постер зураг
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Утасны дугаар
+                  Эвентийн төрөл
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Регистрийн дугаар
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Нууц үг
+                  Төлөв
                 </TableCell>
               </TableRow>
             </TableHeader>

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import CustomerTable from "@/components/tables/CustomerTable";
+import EventTable from "@/components/tables/Event";
 
 export default function EventTablePage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -12,7 +12,7 @@ export default function EventTablePage() {
         <PageBreadcrumb pageTitle="Event" />
         <div className="space-y-6">
           <ComponentCard title="Үйл ажиллагаа">
-            <CustomerTable refreshTrigger={refreshKey}/>
+            <EventTable refreshTrigger={refreshKey}/>
           </ComponentCard>
         </div>
       </div>

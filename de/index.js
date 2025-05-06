@@ -1,7 +1,10 @@
+require('dotenv').config();
 const express = require('express')
 const db = require('./db');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const jwt = require("jsonwebtoken");
+
 
 const app = express()
 
@@ -198,6 +201,24 @@ app.get("/api/district", (req, res) => {
     });
 });
 
+app.get("/api/district", (req, res) => {
+    const { cityId } = req.query;
+
+    if (!cityId) {
+        return res.status(400).json({ message: "cityId is required" });
+    }
+
+    const sql = "SELECT * FROM District WHERE city_id = ?";
+    db.query(sql, [cityId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ message: "Server error" });
+        }
+        return res.json(result);
+    });
+});
+
+
+
 app.get("/api/khoroo", (req, res) => {
     const sql = "SELECT * FROM Khoroo";
     db.query(sql, (err, result) => {
@@ -232,28 +253,76 @@ app.post("/api/customerLogin", (req, res) => {
         if (result.length > 0) {
             const user = result[0];
 
-            // Token үүсгэх
             const token = jwt.sign(
-                { id: user.id, email: user.email }, // Payload
-                process.env.SECRET_KEY,             // Нууц түлхүүр
-                { expiresIn: "1h" }                 // Токены хүчинтэй хугацаа
+                {
+                    id: user.id,        // Хүснэгтийн дагуу өөрчил
+                    role: "customer",
+                    name: user.FirstName        // Хэрвээ FirstName гэж нэрлэгдсэн бол
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: "1h" }            // ✅ Зассан
             );
 
             return res.json({
-                success: "Амжилттай нэвтэрлээ.",
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    password: user.password,
-                },
-                token // Токен буцаана
+                message: "Амжилттай нэвтэрлээ.",
+                token: token,
             });
         } else {
             return res.status(401).json({ message: "Имэйл эсвэл нууц үг буруу байна." });
         }
     });
 });
+
+app.get("/api/auth/me", (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.json({ role: "user" });
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      return res.json({
+        role: decoded.role,
+        name: decoded.name,
+      });
+    } catch (err) {
+      return res.status(401).json({ role: "user" });
+    }
+  });
+
+
+// Organizer login 
+app.post("/api/organizerLogin", (req, res) => {
+    const { companyEmail, companyPassword } = req.body;
+    if (!companyEmail || !companyPassword) {
+        return res.status(400).json({ message: "Имэйл болон нууц үгээ оруулна уу!" });
+    }
+    const sql = "SELECT * FROM Organizer WHERE email = ? AND password = ?";
+    const values = [companyEmail, companyPassword];
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            return res.status(500).json({ message: "Серверийн алдаа: " + err });
+        }
+        if (result.length > 0) {
+            const user = result[0];
+
+            const token = jwt.sign({
+                id: user.id,
+                role: "organizer",
+                name: user.Name
+            },
+            process.env.JWT_SECRET,
+            {expiresIn: "1h"}
+            );
+
+            return res.json({
+                success: "Амжилттай нэвтэрлээ.",
+                token,
+            });
+        } else {
+            return res.status(401).json({ message: "Имэйл эсвэл нууц үг буруу байна." });
+        }
+    });
+});
+
 
 
 // POST /api/events
