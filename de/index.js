@@ -201,11 +201,11 @@ app.get("/api/district", (req, res) => {
     });
 });
 
-app.get("/api/district", (req, res) => {
+app.get("/api/district/id", (req, res) => {
     const { cityId } = req.query;
 
     if (!cityId) {
-        return res.status(400).json({ message: "cityId is required" });
+        return res.status(400).json({ message: "cityId шаардлагатай." });
     }
 
     const sql = "SELECT * FROM District WHERE city_id = ?";
@@ -217,12 +217,26 @@ app.get("/api/district", (req, res) => {
     });
 });
 
-
-
 app.get("/api/khoroo", (req, res) => {
     const sql = "SELECT * FROM Khoroo";
     db.query(sql, (err, result) => {
         if(err) res.json({message: "Server error"});
+        return res.json(result);
+    });
+});
+
+app.get("/api/khoroo/id", (req, res) => {
+    const { districtID } = req.query;
+
+    if (!districtID) {
+        return res.status(400).json({ message: "districtID шаардлагатай." });
+    }
+
+    const sql = "SELECT * FROM Khoroo WHERE District_id = ?";
+    db.query(sql, [districtID], (err, result) => {
+        if (err) {
+            return res.status(500).json({ message: "Server error" });
+        }
         return res.json(result);
     });
 });
