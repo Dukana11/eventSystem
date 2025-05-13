@@ -1,9 +1,11 @@
 require('dotenv').config();
 const express = require('express')
-const db = require('./db');
+const { db, promisePool } = require('./db');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
 
 
 const app = express()
@@ -11,10 +13,38 @@ const app = express()
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+db.getConnection((err, connection) => {
+    if (err) {
+      console.error("DB холболтын алдаа:", err);
+      return res.status(500).json({ error: 'Database connection error' });
+    }
+  });
+  
+promisePool.getConnection((err, connection) => {
+    if (err) {
+      console.error("DB холболтын алдаа:", err);
+      return res.status(500).json({ error: 'Database connection error' });
+    }
+  });
+
 app.use(cors({
     // origin: 'http://localhost:3000',
     // credentials: true
 }));
+
+const storage = multer.diskStorage({
+    destination: "./public/uploads",
+    filename: (req, file, cb) => {
+      cb(null, Date.now() + path.extname(file.originalname));
+    },
+  });
+
+const upload = multer({ storage });
+
+app.post("/api/upload", upload.single("image"), (req, res) => {
+    res.json({ filename: req.file.filename });
+  });
+
 
 app.get('/', (req, res) => {
     res.send('Hello World!')
@@ -279,8 +309,15 @@ app.post("/api/customerLogin", (req, res) => {
 
             return res.json({
                 message: "Амжилттай нэвтэрлээ.",
+                LastName: user.LastName,
+                FirstName: user.FirstName,
+                Email: user.Email,
+                Address: user.Address,
+                PhoneNumber: user.PhoneNumber,
+                RegistrationNumber: user.RegistrationNumber,
                 token: token,
             });
+
         } else {
             return res.status(401).json({ message: "Имэйл эсвэл нууц үг буруу байна." });
         }
@@ -337,91 +374,286 @@ app.post("/api/organizerLogin", (req, res) => {
     });
 });
 
+app.post("/api/addEvent", async (req, res) => {
+    console.log("== REQ BODY ==");
+    console.log(req.body);
 
+    try {
+        const {
+        title,
+        description,
+        link,
+        image,
+        event_type_id,
+        event_status_id,
+        event_category_id,
+        organizer_id,
+        location,
+        timetable,  // timetable нь олон хугацааны массив байна
+        ticket,
+        } = req.body;
 
-// POST /api/events
-app.post('/api/events', async (req, res) => {
-  const { location, event, timetable, tickets } = req.body;
+        // 1) Location нэмэх
+        const sqlLocation = ` INSERT INTO Location (Name, City_id, District_id, Khoroo_id, Address) VALUES (?, ?, ?, ?, ?)`;
+        const valuesLocation = [
+            location.name,
+            location.cityId,
+            location.districtId,
+            location.khorooId,
+            location.address,
+        ];
+        const [locationResult] = await db.execute(sqlLocation, valuesLocation);
+        const locationId = locationResult.insertId;
 
-  const connection = await db.getConnection();
-  await connection.beginTransaction();
+        // 2) Event нэмэх
+        const sqlEvent = `INSERT INTO Event (Title, Description, Link, Image, Event_type_id, Event_status_id, Event_category_id, Organizer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        const valuesEvent = [
+            title,
+            description,
+            link,
+            image,
+            event_type_id,
+            event_status_id,
+            event_category_id,
+            organizer_id,
+        ];
+        const [eventResult] = await db.execute(sqlEvent, valuesEvent);
+        const eventId = eventResult.insertId;
 
-  try {
-    // 1. Location оруулах
-    const [locationResult] = await connection.query(
-      'INSERT INTO Location (Name, Address, Khoroo_id) VALUES (?, ?, ?)',
-      [location.name, location.address, location.khoroo_id]
-    );
-    const locationId = locationResult.insertId;
+        // 3) Timetable нэмэх (олон удаа)
+        for (let i = 0; i < timetable.length; i++) {
+            const sqlTimetable = `INSERT INTO Timetable (Date, StartTime, EndTime, Event_id, Location_id) VALUE (?, ?, ?, ?, ?)`;
+            const valuesTimetable = [
+                timetable[i].date,
+                timetable[i].startTime,
+                timetable[i].endTime,
+                eventId,
+                locationId,
+            ];
+            await db.execute(sqlTimetable, valuesTimetable);
+        }
 
-    // 2. Event оруулах
-    const [eventResult] = await connection.query(
-      'INSERT INTO Event (Title, Description, Link, Image, Event_type_id, Event_status_id, Event_category_id, Organizer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        event.title,
-        event.description,
-        event.link,
-        event.image,
-        event.event_type_id,
-        event.event_status_id,
-        event.event_category_id,
-        event.organizer_id
-      ]
-    );
-    const eventId = eventResult.insertId;
+        // 4) Ticket нэмэх (олон удаа)
+        for (let i = 0; i < ticket.length; i++) {
+            const sqlTicket = ` INSERT INTO Ticket (Type, Price, Quantity, Event_id) VALUES (?, ?, ?, ?)`;
+            const valuesTicket = [
+                ticket[i].type,
+                ticket[i].price,
+                ticket[i].quantity,
+                eventId,
+            ];
+            await db.execute(sqlTicket, valuesTicket);
+        }
 
-    // 3. Timetable оруулах
-    await connection.query(
-      'INSERT INTO Timetable (Date, StartTime, EndTime, Event_id, Hall_id) VALUES (?, ?, ?, ?, ?)',
-      [
-        timetable.date,
-        timetable.startTime,
-        timetable.endTime,
-        eventId,
-        timetable.hall_id
-      ]
-    );
-
-    // 4. Tickets оруулах
-    for (const ticket of tickets) {
-      await connection.query(
-        'INSERT INTO Ticket (Type, Price, Quantity, Event_id) VALUES (?, ?, ?, ?)',
-        [
-          ticket.type,
-          ticket.price,
-          ticket.quantity,
-          eventId
-        ]
-      );
+        return res.status(201).json({
+            success: true,
+            message: "Эвент амжилттай бүртгэгдлээ!",
+        });
+    } catch (err) {
+        console.error("Event insert error:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Дотоод серверийн алдаа: " + err.message,
+        });
     }
+});
+  
 
-    await connection.commit();
-    res.status(201).json({ message: 'Амжилттай хадгаллаа!' });
+//  Event list 
+app.get("/api/eventList", async (req, res) => {
+    try {
+        const [result] = await db.query("SELECT * FROM Event");
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
 
-  } catch (error) {
-    await connection.rollback();
-    console.error(error);
-    res.status(500).json({ error: 'Өгөгдөл хадгалах явцад алдаа гарлаа!' });
-  } finally {
-    connection.release();
-  }
+// Location
+app.get("/locationList", (req, res) => {
+    const sql = "SELECT * FROM Location";
+    db.query(sql, (err, result) => {
+        if(err) res.json({message: "Server error"});
+        return res.json(result);
+    });
+});
+
+//  Timetable
+app.get("/timetableList", (req, res) => {
+    const sql = "SELECT * FROM Timetable";
+    db.query(sql, (err, result) => {
+        if(err) res.json({message: "Server error"});
+        return res.json(result);
+    });
 });
 
 
-app.get('/api/event-title', (req, res) => {
-    db.query('SELECT title FROM Event WHERE id = 2', (error, results) => {
-      if (error) {
-        console.error('Database error:', error);
-        return res.status(500).json({ error: 'Server error' });
-      }
-      if (results.length > 0) {
-        res.json({ title: results[0].title }); // амжилттай олсон тохиолдолд
-      } else {
-        res.status(404).json({ error: 'Event not found' }); // олдсонгүй бол
-      }
-    });
+app.get("/api/events/all", async (req, res) => {
+    try {
+      const [rows] = await promisePool.query(`
+        SELECT 
+          e.ID AS eventId,
+          e.Title,
+          e.Description,
+          e.Image,
+          tt.Date,
+          tt.StartTime,
+          tt.EndTime,
+          l.Name AS locationName,
+          l.Address,
+          k.Name AS khorooName,
+          d.Name AS districtName,
+          c.Name AS cityName,
+          t.Type AS ticketType,
+          t.Price,
+          t.Quantity,
+          o.Name as organizerName
+        FROM Event e
+        JOIN Timetable tt ON e.ID = tt.Event_id
+        JOIN Location l ON tt.Location_id = l.ID
+        JOIN Khoroo k ON l.Khoroo_id = k.ID
+        JOIN District d ON l.District_id = d.ID
+        JOIN City c ON l.City_id = c.ID
+        JOIN Ticket t ON e.ID = t.Event_id
+        JOIN Organizer o ON o.ID = e.Organizer_id
+        ORDER BY e.ID DESC
+      `);
+  
+      res.status(200).json(rows);
+    } catch (error) {
+      console.error("Database error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
   });
 
+
+app.get("/api/events", async (req, res) => {
+    try {
+      const [rows] = await promisePool.query(`
+        SELECT 
+            e.ID AS eventId,
+            e.Title,
+            e.Description,
+            e.Image,
+            MIN(tt.Date) AS Date,
+            MIN(t.Price) AS Price,
+            l.Name AS locationName,
+            o.Name AS organizerName
+            FROM Event e
+            JOIN Timetable tt ON e.ID = tt.Event_id
+            JOIN Ticket t ON e.ID = t.Event_id
+            JOIN Location l ON tt.Location_id = l.ID
+            JOIN Organizer o ON e.Organizer_id = o.ID
+            GROUP BY e.ID, e.Title, e.Description, e.Image, l.Name, o.Name;
+      `);
+  
+      res.status(200).json(rows);
+    } catch (error) {
+      console.error("Database error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+app.get("/api/event/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await promisePool.query(`
+            SELECT 
+                e.ID, 
+                e.Title, 
+                e.Description, 
+                e.Image, 
+                o.Name AS organizerName,
+                l.Name AS locationName, 
+                l.Address, 
+                k.Name AS khorooName,
+                d.Name AS districtName,
+                c.Name AS cityName,
+
+                -- Timetables array
+                (
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'Date', t.Date,
+                            'StartTime', t.StartTime,
+                            'EndTime', t.EndTime
+                        )
+                    )
+                    FROM Timetable t 
+                    WHERE t.Event_id = e.ID
+                ) AS Timetables,
+
+                -- Tickets array
+                (
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'Type', tk.Type,
+                            'Price', tk.Price,
+                            'Quantity', tk.Quantity
+                        )
+                    )
+                    FROM Ticket tk 
+                    WHERE tk.Event_id = e.ID
+                ) AS Tickets
+
+            FROM Event e
+            JOIN Organizer o ON e.Organizer_id = o.ID
+            JOIN Timetable t ON e.ID = t.Event_id
+            JOIN Location l ON t.Location_id = l.ID
+            JOIN Khoroo k ON l.Khoroo_id = k.ID
+            JOIN District d ON l.District_id = d.ID
+            JOIN City c ON l.City_id = c.ID
+            WHERE e.ID = ?
+            LIMIT 1
+        `, [id]);
+
+        res.json(result[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+
+
+// app.get("/api/event/:id", async (req, res) => {
+//     const { id } = req.params;
+//     try {
+//         // Event basic info
+//         const [eventInfo] = await db.query(`
+//           SELECT e.ID, e.Title, e.Description, e.Image, o.Name AS organizerName
+//           FROM Event e
+//           JOIN Organizer o ON e.Organizer_id = o.ID
+//           WHERE e.ID = ?
+//         `, [id]);
+      
+//         // Timetable + Location
+//         const [timetables] = await db.query(`
+//           SELECT t.Date, t.StartTime, t.EndTime, l.Name AS locationName, l.Address
+//           FROM Timetable t
+//           JOIN Location l ON t.Location_id = l.ID
+//           WHERE t.Event_id = ?
+//         `, [id]);
+      
+//         // Tickets
+//         const [tickets] = await db.query(`
+//           SELECT Type, Price, Quantity
+//           FROM Ticket
+//           WHERE Event_id = ?
+//         `, [id]);
+      
+//         res.json({
+//           ...eventInfo[0],
+//           timetables,
+//           tickets,
+//         });
+//       } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ message: "Server error" });
+//       }
+// });
+  
 
 app.listen(3001, () => {
     console.log('Listening on port')

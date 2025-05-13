@@ -36,7 +36,8 @@ select * from City;
 CREATE TABLE `District` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `Name` varchar(45) NOT NULL,
-  `City_id` int NOT NULL
+  `City_id` int NOT NULL,
+  FOREIGN KEY (City_id) REFERENCES City(id)
 );
 INSERT INTO District (Name, City_id) VALUES 
 ('Багануур', 1),
@@ -53,7 +54,8 @@ select * from District;
 CREATE TABLE `Khoroo` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `Name` varchar(45) NOT NULL,
-  `District_id` int NOT NULL
+  `District_id` int NOT NULL,
+  FOREIGN KEY (District_id) REFERENCES District(id)
 );
 
 -- Багануур дүүрэг
@@ -252,20 +254,7 @@ Insert into Bank_Type (Name) values
 ('Хаан банк'),
 ('Худалдаа хөгжлийн банк'),
 ('Капитрон банк'),
-('Ариг банк'),
-('Богд банк'),
-('Чингис хаан банк'),
-('Тээвэр хөгжлийн банк'),
-('Үндэсний хөрөнгө оруулалтын банк'),
-('М банк'),
-('Төрийн сан'),
-('Монгол банк'),
-('ҮЦТ Хадгаламжийн төв'),
-('ҮЦ Клирингийн төв'),
-('Капитал Банк БЭХА'),
-('Мобифинанс ББСБ'),
-('Hipay'),
-('Ард Кредит ББСБ');
+('Ариг банк');
 select * from Bank_Type;
 
 
@@ -273,7 +262,8 @@ CREATE TABLE `Bank_Account` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `HolderName` varchar(45) NOT NULL,
   `AccountNumber` varchar(20) NOT NULL,
-  `Bank_Type_id` int NOT NULL
+  `Bank_Type_id` int NOT NULL,
+  FOREIGN KEY (Bank_Type_id) REFERENCES Bank_Type(id)
 );
 INSERT INTO Bank_Account (HolderName, AccountNumber, Bank_Type_id) VALUES
 ('Бат-Эрдэнэ', '123456789012', 1),
@@ -289,30 +279,18 @@ CREATE TABLE `Organizer` (
   `Name` varchar(65) NOT NULL,
   `Email` varchar(100) NOT NULL,
   `Address` varchar(255),
-  `PhoneNumber` varchar(20),
+  `PhoneNumber` INT NULL,
   `RegistrationNumber` varchar(25) NOT NULL,
   `Password` varchar(45) NOT NULL,
-  `Bank_Account_id` int NOT NULL,
-  `Khoroo_id` int NOT NULL
+  `Bank_Account_id` int NULL,
+  `Khoroo_id` int NULL,
+  FOREIGN KEY (Bank_Account_id) REFERENCES Bank_Account(id),
+  FOREIGN KEY (Khoroo_id) REFERENCES Khoroo(id)
 );
-ALTER TABLE Organizer
-MODIFY COLUMN PhoneNumber INT NULL,
-MODIFY COLUMN Bank_Account_id INT NULL,
-MODIFY COLUMN Khoroo_id INT NULL;
 select * from Organizer;
-
-INSERT INTO Organizer (
-  Name, Email, Address, PhoneNumber, RegistrationNumber, Password, Bank_Account_id, Khoroo_id
-) VALUES (
-  'The Gangbay',
-  'gangbay@event.mn',
-  'Улаанбаатар хот, Баянзүрх дүүрэг, 26-р хороо, Энхтайвны өргөн чөлөө',
-  '88112233',
-  'AA1234567',
-  'kaseta2025',
-  1,
-  1
-);
+INSERT INTO Organizer (Name, Email, Address, PhoneNumber, RegistrationNumber, Password, Bank_Account_id, Khoroo_id) VALUES (
+'The Gangbay','gangbay@event.mn','Улаанбаатар хот, Баянзүрх дүүрэг, 26-р хороо, Энхтайвны өргөн чөлөө',
+'88112233','AA11111111','Huur@2025',1,1);
 
 
 CREATE TABLE `Customer` (
@@ -326,8 +304,8 @@ CREATE TABLE `Customer` (
   `Password` varchar(45) NOT NULL
 );
 INSERT INTO Customer (LastName, FirstName, Email, Address, PhoneNumber, RegistrationNumber, Password) VALUES
-('Жамбал', 'Нарантуяа', 'narantuya.jambal@example.com', 'Сүхбаатар аймаг, Монгол Улс', '99112233', 'REG12346', 'securepassword456'),
-('Тамир', 'Ариунбат', 'ariunbat.tamir@example.com', 'Хан-Уул дүүрэг, Улаанбаатар', '99553344', 'REG12347', 'mypassword789');
+('Жамбал', 'Нарантуяа', 'narantuya.jambal@example.com', 'Сүхбаатар аймаг, Монгол Улс', '99112233', 'REG12346', 'Securepassword.456'),
+('Тамир', 'Ариунбат', 'ariunbat.tamir@example.com', 'Хан-Уул дүүрэг, Улаанбаатар', '99553344', 'REG12347', 'Mypassword@789');
 select * from `Customer`;
 
 
@@ -341,13 +319,29 @@ Insert into Event_Type (Name) values
 select * from Event_Type;
 
 
+CREATE TABLE Event_Subtype (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    Event_Type_id INT,
+    FOREIGN KEY (Event_Type_id) REFERENCES Event_Type(id)
+);
+Insert into Event_Subtype (Name, Event_Type_id) values 
+('Суудалтай',1),
+('Суудалгүй',1);
+select * from Event_Subtype;
+
+
 CREATE TABLE `Event_Status` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `Name` varchar(45) NOT NULL
 );
 Insert into Event_Status (Name) values 
 ('Шинэ'),
-('Дууссан');
+('Дууссан'),
+('Хүлээгдэж буй'),
+('Буцаагдсан'),
+('Цуцлагдсан'),
+('Зөвшөөрсөн');
 select * from Event_Status;
 
 
@@ -368,6 +362,7 @@ Insert into Event_Category (Name) values
 ('Бусад');
 select * from Event_Category;
 
+
 CREATE TABLE `Event` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `Title` varchar(100) NOT NULL,
@@ -375,21 +370,87 @@ CREATE TABLE `Event` (
   `Link` varchar(255),
   `Image` varchar(455) NOT NULL,
   `Event_type_id` int NOT NULL,
+  `Event_subtype_id` int NULL,
   `Event_status_id` int NOT NULL,
   `Event_category_id` int NOT NULL,
-  `Organizer_id` int NOT NULL
-);
-INSERT INTO Event (
-  Title, Description, Link, Image, Event_type_id, Event_status_id, Event_category_id, Organizer_id
-) VALUES (
-  'КАСЕТА-GANGBAY',
-  '“КАСЕТА" GANGBAY 5 жил\n🔥 Gangbay хамтлагийн бие даасан KACETA тоглолт 5 сарын 24-нд болох гэж байна🔥\n2025 оны зуны нээлтийн тоглолтон дээр ирж мартагдашгүй үдшийг өнгөрүүлээрэй!,',
-  '',
-  'https://example.com/images/gangbay-poster.jpg',
-  1, 1, 9, 1
+  `Organizer_id` int NOT NULL,
+  FOREIGN KEY (Event_type_id) REFERENCES Event_type(id),
+  FOREIGN KEY (Event_subtype_id) REFERENCES Event_subtype(id),
+  FOREIGN KEY (Event_status_id) REFERENCES Event_status(id),
+  FOREIGN KEY (Event_category_id) REFERENCES Event_category(id),
+  FOREIGN KEY (Organizer_id) REFERENCES Organizer(id)
 );
 select * from Event;
-SELECT title FROM event WHERE id = 2;
+INSERT INTO Event (
+  Title, Description, Link, Image, Event_type_id, Event_subtype_id, Event_status_id, 
+  Event_category_id, Organizer_id
+) VALUES (
+  'VIP Morin Khuur surgalt',
+  'Та өөрийн ажлын байрандаа өөртөө тохирох өдөр, цагийн сонголтоор бодит үр дүнтэй суралцаарай.',
+  '',
+  'morin_khuur.png',
+  1,2, 1, 1, 1
+);
+INSERT INTO Event (
+  Title, Description, Link, Image, Event_type_id, Event_subtype_id, Event_status_id, 
+  Event_category_id, Organizer_id
+) VALUES (
+  'GUYS СУРГУУЛЬ МИНЬ БАЯРТАЙ',
+  'Сүүлчийн цас, анхны бороо ч орж магадгүй тэр л өдөр төгсөлтийн баяр, анд нөхдийн уулзалтуудтай зэрэгцээд GUYS нь анхны задгай талбайн бие даасан бүрэн хэмжээний тоглолтоо хүргэхэд бэлэн боллоо.
+28-н жилд хийж бүтээсэн бүхнээ бид үзүүлье та бүхэн минь хамтдаа дурсамжаараа аз жаргалтайгаар аялаарай …
+
+ 
+
+GUYS СУРГУУЛЬ МИНЬ БАЯРТАЙ
+
+Хөтөлбөр: GUYS хамтлагийн бүх цаг үеийн супер хит 35-н дуу амьд хөгжмийн найруулга, тусгайлан бэлдсэн үзүүлбэртэйгээр хүрнэ.
+
+VIP: Тусгайлан бэлдсэн хэсэгт сууж үзэх боломжтой.
+-VIP Table
+-Finger foods
+-Soft drinks
+-Welcoming drinks
+-Vip service
+-We have a special surprise for you!
+
+Хаалга нээгдэх: 15:00
+Хөтөлбөр эхлэх: 19:00
+Хөтөлбөр дуусах: 23:30
+
+📅Хэзээ? 2025.05.31
+📍Хаана? SocialPay Park (https://shorturl.at/e9xLb)
+📞Холбогдох утас: 72726262
+
+Тасалбар буцаах болон өөрчлөх боломжгүй тул та сонголтоо зөв хийнэ үү.',
+  '',
+  'guys.jpg',
+  1,2, 1, 9, 3
+);
+
+SELECT 
+  E.ID,
+  E.Title,
+  E.Description,
+  E.Link,
+  E.Image,
+  ET.Name AS Event_Type,
+  ES.Name AS Event_Status,
+  EC.Name AS Event_Category,
+  O.Name AS Organizer,
+  EST.Name AS Event_Subtype
+FROM 
+  `Event` E
+JOIN 
+  `Event_type` ET ON E.Event_type_id = ET.ID
+JOIN 
+  `Event_subtype` EST ON E.Event_subtype_id = EST.id
+JOIN 
+  `Event_status` ES ON E.Event_status_id = ES.ID
+JOIN 
+  `Event_category` EC ON E.Event_category_id = EC.ID
+JOIN 
+  `Organizer` O ON E.Organizer_id = O.ID;
+
 
 CREATE TABLE `Location` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -398,11 +459,14 @@ CREATE TABLE `Location` (
   `District_id` int NOT NULL,
   `Khoroo_id` int NOT NULL,
   `Address` varchar(255) NULL,
-  
+  FOREIGN KEY (City_id) REFERENCES City(id),
+  FOREIGN KEY (District_id) REFERENCES District(id),
+  FOREIGN KEY (Khoroo_id) REFERENCES Khoroo(id)
 );
-insert into Location (Name, Address, Khoroo_id) values 
-('МҮЭ -ийн Соёлын төв ордон', 
-'Peace Avenue 105 Central Cultural Palace of Mongolian Trade Union, BGD - 2 khoroo, Ulaanbaatar 16050', 1);
+insert into Location (Name, City_id, District_id, Khoroo_id, Address) values 
+('Оффис', 1, 4, 33, "");
+insert into Location (Name, City_id, District_id, Khoroo_id, Address) values 
+('Socialpay Park', 1, 7, 98, "");
 select * from Location;
 
 
@@ -412,14 +476,19 @@ CREATE TABLE `Timetable` (
   `StartTime` varchar(25) NOT NULL,
   `EndTime` varchar(25) NOT NULL,
   `Event_id` int NOT NULL,
-  `Location_id` int NOT NULL
+  `Location_id` int NOT NULL,
+  FOREIGN KEY (Event_id) REFERENCES Event(id),
+  FOREIGN KEY (Location_id) REFERENCES Location(id)
 );
 INSERT INTO Timetable (Date, StartTime, EndTime, Event_id, Location_id) 
 VALUES 
-('2025-04-25', '09:00:00', '11:00:00', 2, 1),
-('2025-04-25', '13:00:00', '15:00:00', 2, 2);
+('2025-01-24', '18:00:00', '20:00:00', 1, 1),
+('2026-01-23', '18:00:00', '20:00:00', 1, 1);
+INSERT INTO Timetable (Date, StartTime, EndTime, Event_id, Location_id) 
+VALUES 
+('2025-05-31', '16:00:00', '22:00:00', 2, 2);
 select * from Timetable;
-
+SHOW CREATE TABLE `Timetable`;
 
 CREATE TABLE `Seat_Type` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -430,15 +499,35 @@ INSERT INTO Seat_Type (Name) VALUES
 ('VIP');
 select * from Seat_Type;
 
+CREATE TABLE `Ticket` (
+  `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
+  `Type` varchar(45) NOT NULL,
+  `Price` varchar(45) NOT NULL,
+  `Quantity` integer NOT NULL,
+  `Event_id` int NOT NULL,
+  FOREIGN KEY (Event_id) REFERENCES Event(id)
+);
+INSERT INTO Ticket (Type, Price, Quantity, Event_id) VALUES 
+('Энгийн', 50000, 10, 1),
+('VIP', 100000, 10, 1);
+
+INSERT INTO Ticket (Type, Price, Quantity, Event_id) VALUES 
+('Энгийн тасалбар', 78000, 10, 2),
+('VIP тасалбар', 208000, 10, 2),
+('FANZONE тасалбар', 500000, 10, 2);
+select * from Ticket;
+
 
 CREATE TABLE `Seat` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `Row` varchar(10) NOT NULL,
   `Number` varchar(10) NOT NULL,
-  `Hall_id` int NOT NULL,
-  `Seat_Type_id` int NOT NULL
+  `Location_id` int NOT NULL,
+  `Seat_Type_id` int NOT NULL,
+  FOREIGN KEY (Location_id) REFERENCES Location(id),
+  FOREIGN KEY (Seat_Type_id) REFERENCES Seat_Type(id)
 );
-INSERT INTO Seat (`Row`, `Number`, `Hall_id`, `Seat_Type_id`) VALUES 
+INSERT INTO Seat (`Row`, `Number`, `Location_id`, `Seat_Type_id`) VALUES 
 ('A', '1', 1, 1),
 ('A', '2', 1, 1),
 ('A', '3', 1, 2),
@@ -450,23 +539,15 @@ CREATE TABLE `Price` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `Price` decimal(10,2) NOT NULL,
   `Timetable_id` int NOT NULL,
-  `Seat_Type_id` int NOT NULL
+  `Seat_Type_id` int NOT NULL,
+  FOREIGN KEY (Timetable_id) REFERENCES Timetable(id),
+  FOREIGN KEY (Seat_Type_id) REFERENCES Seat_Type(id)
 );
 INSERT INTO Price (`Price`, `Timetable_id`, `Seat_Type_id`) VALUES 
-(15000.00, 5, 1),  -- Regular
-(25000.00, 5, 2);  -- VIP
+(15000.00, 1, 1),  -- Regular
+(25000.00, 1, 2);  -- VIP
+select * from Price;
 
-
-CREATE TABLE `Seat_Reservation` (
-  `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
-  `Seat_id` int NOT NULL,
-  `Price_id` int NOT NULL,
-  `Order_id` int NOT NULL
-);
-INSERT INTO Seat_Reservation (`Seat_id`, `Price_id`, `Order_id`) VALUES 
-(1, 1, 1),
-(2, 1, 1),
-(5, 3, 3);
 
 CREATE TABLE `Discount` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
@@ -478,18 +559,33 @@ INSERT INTO Discount (Name, DiscountValue) VALUES
 ('Урамшуулал', 20.00);
 select * from discount;
 
-
-
 CREATE TABLE `Order` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `OrderDate` datetime NOT NULL,
   `Timetable_id` int NOT NULL,
   `Customer_id` int NOT NULL,
-  `Discount_id` int NOT NULL
+  `Discount_id` int NOT NULL,
+  FOREIGN KEY (Timetable_id) REFERENCES Timetable(id),
+  FOREIGN KEY (Customer_id) REFERENCES Customer(id),
+  FOREIGN KEY (Discount_id) REFERENCES Discount(id)
 );
 INSERT INTO `Order` (OrderDate, Timetable_id, Customer_id, Discount_id) VALUES 
-(NOW(), 5, 1, 1);
+(NOW(), 2, 1, 1);
 select * from `order`;
+
+
+CREATE TABLE `Seat_Reservation` (
+  `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
+  `Seat_id` int NOT NULL,
+  `Price_id` int NOT NULL,
+  `Order_id` int NOT NULL,
+  FOREIGN KEY (Seat_id) REFERENCES Seat(id),
+  FOREIGN KEY (Price_id) REFERENCES Price(id),
+  FOREIGN KEY (Order_id) REFERENCES `Order`(id)
+);
+INSERT INTO Seat_Reservation (`Seat_id`, `Price_id`, `Order_id`) VALUES 
+(1, 5, 1),
+(2, 5, 1);
 
 
 CREATE TABLE `Order_Status_Reference` (
@@ -508,11 +604,12 @@ CREATE TABLE `Order_Status` (
   `Description` varchar(255),
   `OrderStatusDate` datetime NOT NULL,
   `Order_id` int NOT NULL,
-  `Order_Status_Reference_id` int NOT NULL
+  `Order_Status_Reference_id` int NOT NULL,
+  FOREIGN KEY (Order_id) REFERENCES `Order`(id),
+  FOREIGN KEY (Order_Status_Reference_id) REFERENCES Order_Status_Reference(id)
 );
 INSERT INTO Order_Status (Description, OrderStatusDate, Order_id, Order_Status_Reference_id) VALUES 
-('Захиалга үүссэн', NOW(), 4, 1),
-('Төлбөр амжилттай хийгдсэн', NOW(), 4, 2);
+('Захиалга үүссэн', NOW(), 1, 1);
 
 
 CREATE TABLE `Payment_Type` (
@@ -522,89 +619,67 @@ CREATE TABLE `Payment_Type` (
 INSERT INTO Payment_Type (Name) VALUES 
 ('QPay'),
 ('Интернэт банк');
+select * from Payment_Type;
 
 CREATE TABLE `Payment` (
   `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
   `Amount` decimal(10,2) NOT NULL,
   `PaymentDate` datetime NOT NULL,
   `Order_id` int NOT NULL,
-  `PaymentType_id` int NOT NULL
+  `PaymentType_id` int NOT NULL,
+  FOREIGN KEY (Order_id) REFERENCES `Order`(id),
+  FOREIGN KEY (PaymentType_id) REFERENCES Payment_Type(id)
 );
 INSERT INTO Payment (Amount, PaymentDate, Order_id, PaymentType_id) VALUES 
-(30000.00, NOW(), 4, 1),
-(15000.00, NOW(), 4, 2);
+(30000.00, NOW(), 1, 1);
 select * from Payment;
 
-CREATE TABLE `Ticket` (
-  `ID` int PRIMARY KEY NOT NULL AUTO_INCREMENT,
-  `Type` varchar(100) NOT NULL,  -- Тасалбарын төрөл (Энгийн, VIP гэх мэт)
-  `Price` decimal(10,2) NOT NULL, -- Үнэ
-  `Quantity` int NOT NULL,        -- Нийт хэдэн тасалбар байгаа
-  `Event_id` int NOT NULL,         -- Аль эвентэд харьяалагдах
-  `Created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  
-  FOREIGN KEY (`Event_id`) REFERENCES `Event`(`ID`) ON DELETE CASCADE
-);
-select * from Ticket;
+SELECT 
+  e.ID AS eventId,
+  e.Title,
+  e.Description,
+  e.Image AS imageSrc,
+  tt.Date,
+  tt.StartTime,
+  tt.EndTime,
+  l.Name AS locationName,
+  l.Address,
+  k.Name AS KhorooName,
+  d.Name AS DistrictName,
+  c.Name AS CityName,
+  t.Type AS ticketType,
+  t.Price,
+  t.Quantity,
+  o.NAME as OrganizerName
+FROM Event e
+JOIN Timetable tt ON e.ID = tt.Event_id
+JOIN Location l ON tt.Location_id = l.ID
+JOIN Khoroo k ON l.Khoroo_id = k.ID
+JOIN District d ON l.District_id = d.ID
+JOIN City c ON l.City_id = c.ID
+JOIN Ticket t ON e.ID = t.Event_id
+JOIN Organizer o ON o.ID = e.Organizer_id
+ORDER BY e.ID DESC;
+
+
+SELECT 
+  e.ID AS eventId,
+  e.Title,
+  e.Description,
+  e.Image,
+  MIN(tt.Date) AS Date,
+  MIN(t.Price) AS Price,
+  l.Name AS locationName,
+  o.Name AS organizerName
+FROM Event e
+JOIN Timetable tt ON e.ID = tt.Event_id
+JOIN Ticket t ON e.ID = t.Event_id
+JOIN Location l ON tt.Location_id = l.ID
+JOIN Organizer o ON e.Organizer_id = o.ID
+GROUP BY e.ID, e.Title, e.Description, e.Image, l.Name, o.Name;
 
 
 
-
-
-
-ALTER TABLE `Organizer` ADD FOREIGN KEY (`Bank_Account_id`) REFERENCES `Bank_Account` (`ID`);
-
-ALTER TABLE `Organizer` ADD FOREIGN KEY (`Khoroo_id`) REFERENCES `Khoroo` (`ID`);
-
-ALTER TABLE `Event` ADD FOREIGN KEY (`Event_type_id`) REFERENCES `Event_Type` (`ID`);
-
-ALTER TABLE `Event` ADD FOREIGN KEY (`Event_status_id`) REFERENCES `Event_Status` (`ID`);
-
-ALTER TABLE `Event` ADD FOREIGN KEY (`Event_category_id`) REFERENCES `Event_Category` (`ID`);
-
-ALTER TABLE `Location` ADD FOREIGN KEY (`Khoroo_id`) REFERENCES `Khoroo` (`ID`);
-
-ALTER TABLE `Event` ADD FOREIGN KEY (`Organizer_id`) REFERENCES `Organizer` (`ID`);
-
-ALTER TABLE `Order` ADD FOREIGN KEY (`Customer_id`) REFERENCES `Customer` (`ID`);
-
-ALTER TABLE `Order` ADD FOREIGN KEY (`Timetable_id`) REFERENCES `Timetable` (`ID`);
-
-ALTER TABLE `Payment` ADD FOREIGN KEY (`Order_id`) REFERENCES `Order` (`ID`);
-
-ALTER TABLE `Payment` ADD FOREIGN KEY (`PaymentType_id`) REFERENCES `Payment_Type` (`ID`);
-
-ALTER TABLE `Timetable` ADD FOREIGN KEY (`Event_id`) REFERENCES `Event` (`ID`);
-
-ALTER TABLE `Bank_Account` ADD FOREIGN KEY (`Bank_Type_id`) REFERENCES `Bank_Type` (`ID`);
-
-ALTER TABLE `Seat_Reservation` ADD FOREIGN KEY (`Seat_id`) REFERENCES `Seat` (`ID`);
-
-ALTER TABLE `Seat_Reservation` ADD FOREIGN KEY (`Order_id`) REFERENCES `Order` (`ID`);
-
-ALTER TABLE `Seat_Reservation` ADD FOREIGN KEY (`Price_id`) REFERENCES `Price` (`ID`);
-
-ALTER TABLE `District` ADD FOREIGN KEY (`City_id`) REFERENCES `City` (`ID`);
-
-ALTER TABLE `Khoroo` ADD FOREIGN KEY (`District_id`) REFERENCES `District` (`ID`);
-
-ALTER TABLE `Seat` ADD FOREIGN KEY (`Hall_id`) REFERENCES `Hall` (`ID`);
-
-ALTER TABLE `Hall` ADD FOREIGN KEY (`Location_id`) REFERENCES `Location` (`ID`);
-
-ALTER TABLE `Timetable` ADD FOREIGN KEY (`Hall_id`) REFERENCES `Hall` (`ID`);
-
-ALTER TABLE `Price` ADD FOREIGN KEY (`Timetable_id`) REFERENCES `Timetable` (`ID`);
-
-ALTER TABLE `Price` ADD FOREIGN KEY (`Seat_Type_id`) REFERENCES `Seat_Type` (`ID`);
-
-ALTER TABLE `Seat` ADD FOREIGN KEY (`Seat_Type_id`) REFERENCES `Seat_Type` (`ID`);
-
-ALTER TABLE `Order_Status` ADD FOREIGN KEY (`Order_Status_Reference_id`) REFERENCES `Order_Status_Reference` (`ID`);
-
-ALTER TABLE `Order_Status` ADD FOREIGN KEY (`Order_id`) REFERENCES `Order` (`ID`);
-
-ALTER TABLE `Order` ADD FOREIGN KEY (`Discount_id`) REFERENCES `Discount` (`ID`);
 
 
 
