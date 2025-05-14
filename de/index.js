@@ -366,6 +366,12 @@ app.post("/api/organizerLogin", (req, res) => {
 
             return res.json({
                 success: "Амжилттай нэвтэрлээ.",
+                Name: user.Name,
+                Email: user.Email,
+                Address: user.Address,
+                PhoneNumber: user.PhoneNumber,
+                RegistrationNumber: user.RegistrationNumber,
+                token: token,
                 token,
             });
         } else {
@@ -616,44 +622,24 @@ app.get("/api/event/:id", async (req, res) => {
 });
 
 
+// Зохион байгуулагчийн бүртгүүлсэн эвентүүд
+app.get("/api/myEvents/:organizerId", async (req, res) => {
+    const organizerId = req.params.organizerId;
 
-// app.get("/api/event/:id", async (req, res) => {
-//     const { id } = req.params;
-//     try {
-//         // Event basic info
-//         const [eventInfo] = await db.query(`
-//           SELECT e.ID, e.Title, e.Description, e.Image, o.Name AS organizerName
-//           FROM Event e
-//           JOIN Organizer o ON e.Organizer_id = o.ID
-//           WHERE e.ID = ?
-//         `, [id]);
-      
-//         // Timetable + Location
-//         const [timetables] = await db.query(`
-//           SELECT t.Date, t.StartTime, t.EndTime, l.Name AS locationName, l.Address
-//           FROM Timetable t
-//           JOIN Location l ON t.Location_id = l.ID
-//           WHERE t.Event_id = ?
-//         `, [id]);
-      
-//         // Tickets
-//         const [tickets] = await db.query(`
-//           SELECT Type, Price, Quantity
-//           FROM Ticket
-//           WHERE Event_id = ?
-//         `, [id]);
-      
-//         res.json({
-//           ...eventInfo[0],
-//           timetables,
-//           tickets,
-//         });
-//       } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ message: "Server error" });
-//       }
-// });
-  
+    try {
+        const [result] = await db.query(
+            `SELECT e.* FROM Event e
+             JOIN Registration r ON e.ID = r.Event_id
+             WHERE r.Organizer_id = ?`,
+            [organizerId]
+        );
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 
 app.listen(3001, () => {
     console.log('Listening on port')
